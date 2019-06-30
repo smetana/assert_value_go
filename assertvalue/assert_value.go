@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/pmezard/go-difflib/difflib"
+	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
@@ -13,20 +14,43 @@ import (
 	"unicode"
 )
 
-var FileData = "Hey!"
-
 const maxInt = int(^uint(0) >> 1)
 
-const banner = `
-For now assertvalue.Equal supports only two forms:
-
-  asertvalue.Equal(t, actual)
-
-  assertvalue.Equal(t, actual, D(` + "`" + `
-    ..expected value..
-  ` + "`" + `))
-
-`
+func File(t *testing.T, actual, filename string) {
+	var expected string
+	if _, err := os.Stat(filename); err == nil {
+		// File exists. Use content as expected value
+		buf, err := ioutil.ReadFile(filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+		expected = string(buf)
+	} else if os.IsNotExist(err) {
+		// File does not exist. Will create file
+		expected = ""
+	} else {
+		// Something happened
+		log.Fatal(err)
+	}
+	if actual != expected {
+		diffStruct := difflib.UnifiedDiff{
+			A:        difflib.SplitLines(expected),
+			B:        difflib.SplitLines(actual),
+			FromFile: "file: " + filename,
+			ToFile:   "actual",
+			Context:  3,
+		}
+		diff, _ := difflib.GetUnifiedDiffString(diffStruct)
+		if !isNewValueAccepted(diff) {
+			t.FailNow()
+		} else {
+			err := ioutil.WriteFile(filename, []byte(actual), 0644)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
 
 func Equal(t *testing.T, args ...string) {
 	var actual, expected string
@@ -38,7 +62,18 @@ func Equal(t *testing.T, args ...string) {
 		actual = args[0]
 		expected = args[1]
 	} else {
-		t.Fatal("Invalid function call\n" + banner)
+		t.Fatal(heredoc.Doc(`
+			Invalid function call
+
+			For now assertvalue.Equal supports only two forms:
+
+			asertvalue.Equal(t, actual)
+
+		    assertvalue.Equal(t, actual, D(` + "`" + `
+		      ..expected value..
+		    ` + "`" + `))
+
+		`))
 	}
 
 	diff := difflib.UnifiedDiff{
@@ -57,6 +92,22 @@ func Equal(t *testing.T, args ...string) {
 	fmt.Println("---")
 	fmt.Println(formatNewExpected(actual))
 	t.Fatal("not implemented")
+}
+
+func isNewValueAccepted(diff string) bool {
+	fmt.Println(diff)
+	fmt.Print("Accept new value? [y,n] ")
+	var answer string
+	// testing framework changes os.Stdin
+	// We need real interaction with user
+	tty, err := os.Open("/dev/tty")
+	if err != nil {
+		log.Fatalf("can't open /dev/tty: %s", err)
+	}
+	s := bufio.NewScanner(tty)
+	s.Scan()
+	answer = s.Text()
+	return answer == "y" || answer == "Y"
 }
 
 func readLines(filename string) []string {
