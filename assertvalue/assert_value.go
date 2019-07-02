@@ -8,13 +8,15 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
-	"unicode"
 )
 
 const maxInt = int(^uint(0) >> 1)
+
+var reStringNoExpected = regexp.MustCompile(`^(\s*)(assertvalue\.String\([^,]*,[^,]*)(\))`)
 
 func File(t *testing.T, actual, filename string) {
 	var expected string
@@ -52,7 +54,7 @@ func File(t *testing.T, actual, filename string) {
 	}
 }
 
-func Equal(t *testing.T, args ...string) {
+func String(t *testing.T, args ...string) {
 	var actual, expected string
 
 	if len(args) == 1 {
@@ -65,7 +67,7 @@ func Equal(t *testing.T, args ...string) {
 		t.Fatal(heredoc.Doc(`
 			Invalid function call
 
-			For now assertvalue.Equal supports only two forms:
+			For now assertvalue.String supports only two forms:
 
 			asertvalue.Equal(t, actual)
 
@@ -75,23 +77,28 @@ func Equal(t *testing.T, args ...string) {
 
 		`))
 	}
-
-	diff := difflib.UnifiedDiff{
-		A:       difflib.SplitLines(expected),
-		B:       difflib.SplitLines(actual),
-		Context: 3,
+	if actual != expected {
+		diffStruct := difflib.UnifiedDiff{
+			A:       difflib.SplitLines(expected),
+			B:       difflib.SplitLines(actual),
+			Context: 3,
+		}
+		diff, _ := difflib.GetUnifiedDiffString(diffStruct)
+		if !isNewValueAccepted(diff) {
+			t.FailNow()
+		} else {
+			_, filename, lineno, _ := runtime.Caller(1)
+			code := readTestCode(filename)
+			line := code[lineno-1]
+			parsed := reStringNoExpected.FindAllStringSubmatch(line, -1)
+			indent := parsed[0][1]
+			prefix := parsed[0][2]
+			suffix := parsed[0][3]
+			expected = formatNewExpected(actual, indent)
+			code[lineno-1] = indent + prefix + ", " + expected + suffix
+			writeTestCode(filename, code)
+		}
 	}
-	text, _ := difflib.GetUnifiedDiffString(diff)
-	fmt.Println(text)
-	fmt.Println(t.Name())
-	_, file, line, _ := runtime.Caller(1)
-	fmt.Println(line)
-	lines := readLines(file)
-	fmt.Println("---")
-	fmt.Println(lines[line-1])
-	fmt.Println("---")
-	fmt.Println(formatNewExpected(actual))
-	t.Fatal("not implemented")
 }
 
 func isNewValueAccepted(diff string) bool {
@@ -110,7 +117,7 @@ func isNewValueAccepted(diff string) bool {
 	return answer == "y" || answer == "Y"
 }
 
-func readLines(filename string) []string {
+func readTestCode(filename string) []string {
 	var lines []string
 	f, err := os.Open(filename)
 	if err != nil {
@@ -128,26 +135,33 @@ func readLines(filename string) []string {
 	return lines
 }
 
-func getIndentation(s string) int {
-	lines := strings.Split(s, "\n")
-	indent := maxInt
-	for _, line := range lines {
-		lineIndent := 0
-		for _, r := range []rune(line) {
-			if unicode.IsSpace(r) {
-				lineIndent += 1
-			} else {
-				break
-			}
-		}
-
-		if lineIndent < indent {
-			indent = lineIndent
-		}
+func writeTestCode(filename string, code []string) {
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return indent
+	defer f.Close()
+	w := bufio.NewWriter(f)
+	for _, line := range code {
+		fmt.Fprintln(w, line)
+	}
+	err = w.Flush()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func formatNewExpected(s string) string {
-	return "D(`\n" + heredoc.Docf(s) + "`)"
+func formatNewExpected(s, indent string) string {
+	return "D(`\n" + formatExpectedContent(s, indent) + indent + "`)"
+}
+
+func formatExpectedContent(s, indent string) string {
+	expected := heredoc.Docf(s)
+	lines := strings.Split(expected, "\n")
+	for i, line := range lines {
+		if i < len(lines)-1 {
+			lines[i] = indent + "    " + line
+		}
+	}
+	return strings.Join(lines, "\n")
 }
