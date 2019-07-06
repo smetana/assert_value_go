@@ -93,6 +93,15 @@ func String(t *testing.T, args ...string) {
 
 		`))
 	}
+
+	// Since we use heredocs to store values and heredoc always ends with
+	// new line character we should add do something with values
+	// which don't end wuth new lines. For now indicate missing new line
+	// with <NOEOL>\n
+	if actual[len(actual)-1:] != "\n" {
+		actual = actual + "<NOEOL>\n"
+	}
+
 	if actual != expected {
 		diffStruct := difflib.UnifiedDiff{
 			A:       difflib.SplitLines(expected),
@@ -189,7 +198,7 @@ func formatExpectedContent(s, indent string) string {
 	lines := strings.Split(expected, "\n")
 	for i, line := range lines {
 		if i < len(lines)-1 {
-			lines[i] = indent + "    " + line
+			lines[i] = indent + "\t" + line
 		}
 	}
 	return strings.Join(lines, "\n")
