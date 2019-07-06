@@ -16,6 +16,7 @@ import (
 
 const maxInt = int(^uint(0) >> 1)
 
+var defaultAnswer string
 var reStringNoExpected = regexp.MustCompile(`^(\s*)(assertvalue\.String\([^,]*,[^,]*)(\))`)
 
 func File(t *testing.T, actual, filename string) {
@@ -103,18 +104,49 @@ func String(t *testing.T, args ...string) {
 
 func isNewValueAccepted(diff string) bool {
 	fmt.Println(diff)
-	fmt.Print("Accept new value? [y,n] ")
 	var answer string
-	// testing framework changes os.Stdin
-	// We need real interaction with user
-	tty, err := os.Open("/dev/tty")
-	if err != nil {
-		log.Fatalf("can't open /dev/tty: %s", err)
+	if isInteractive() {
+		if defaultAnswer != "" {
+			answer = defaultAnswer
+		} else {
+			fmt.Print("Accept new value? [y,n,Y,N] ")
+			// testing framework changes os.Stdin
+			// We need real interaction with user
+			tty, err := os.Open("/dev/tty")
+			if err != nil {
+				log.Fatalf("can't open /dev/tty: %s", err)
+			}
+			s := bufio.NewScanner(tty)
+			s.Scan()
+			answer = s.Text()
+			if answer == "Y" || answer == "N" {
+				defaultAnswer = answer
+			}
+		}
+		return answer == "y" || answer == "Y"
+	} else if acceptNewValues() {
+		return true
+	} else {
+		return false
 	}
-	s := bufio.NewScanner(tty)
-	s.Scan()
-	answer = s.Text()
-	return answer == "y" || answer == "Y"
+}
+
+func isInteractive() bool {
+	for _, arg := range os.Args {
+		if arg == "nointeractive" {
+			return false
+		}
+	}
+	return true
+}
+
+func acceptNewValues() bool {
+	for _, arg := range os.Args {
+		if arg == "accept" {
+			return true
+		}
+	}
+	return false
 }
 
 func readTestCode(filename string) []string {
