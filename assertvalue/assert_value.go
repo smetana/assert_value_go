@@ -16,8 +16,23 @@ import (
 
 const maxInt = int(^uint(0) >> 1)
 
-var defaultAnswer string
-var reStringNoExpected = regexp.MustCompile(`^(\s*)(assertvalue\.String\([^,]*,[^,]*)(\))`)
+var (
+	defaultAnswer      string
+	isInteractive      = true
+	acceptNewValues    = false
+	reStringNoExpected = regexp.MustCompile(`^(\s*)(assertvalue\.String\(.*)(\))`)
+)
+
+func init() {
+	for _, arg := range os.Args {
+		switch arg {
+		case "nointeractive":
+			isInteractive = false
+		case "accept":
+			acceptNewValues = true
+		}
+	}
+}
 
 func File(t *testing.T, actual, filename string) {
 	var expected string
@@ -105,7 +120,7 @@ func String(t *testing.T, args ...string) {
 func isNewValueAccepted(diff string) bool {
 	fmt.Println(diff)
 	var answer string
-	if isInteractive() {
+	if isInteractive {
 		if defaultAnswer != "" {
 			answer = defaultAnswer
 		} else {
@@ -124,29 +139,11 @@ func isNewValueAccepted(diff string) bool {
 			}
 		}
 		return answer == "y" || answer == "Y"
-	} else if acceptNewValues() {
+	} else if acceptNewValues {
 		return true
 	} else {
 		return false
 	}
-}
-
-func isInteractive() bool {
-	for _, arg := range os.Args {
-		if arg == "nointeractive" {
-			return false
-		}
-	}
-	return true
-}
-
-func acceptNewValues() bool {
-	for _, arg := range os.Args {
-		if arg == "accept" {
-			return true
-		}
-	}
-	return false
 }
 
 func readTestCode(filename string) []string {
