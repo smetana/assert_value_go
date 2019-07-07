@@ -17,10 +17,12 @@ import (
 const maxInt = int(^uint(0) >> 1)
 
 var (
-	defaultAnswer      string
-	isInteractive      = true
-	acceptNewValues    = false
-	reStringNoExpected = regexp.MustCompile(`^(\s*)(assertvalue\.String\(.*)(\))`)
+	defaultAnswer   string
+	isInteractive   = true
+	acceptNewValues = false
+	reCodeNoExp     = regexp.MustCompile(`^(\s*)(assertvalue\.String\(.*)(\))`)
+	reCodeExpBegin  = regexp.MustCompile("^(\\s*)(assertvalue\\.String\\(.*,\\s*D\\(`)")
+	reCodeExpEnd    = regexp.MustCompile("^\\s*`\\s*\\)\\s*\\)")
 )
 
 func init() {
@@ -112,15 +114,13 @@ func String(t *testing.T, args ...string) {
 		if !isNewValueAccepted(diff) {
 			t.FailNow()
 		} else {
-			_, filename, lineno, _ := runtime.Caller(1)
+			_, filename, lineNum, _ := runtime.Caller(1)
 			code := readTestCode(filename)
-			line := code[lineno-1]
-			parsed := reStringNoExpected.FindAllStringSubmatch(line, -1)
-			indent := parsed[0][1]
-			prefix := parsed[0][2]
-			suffix := parsed[0][3]
-			expected = formatNewExpected(actual, indent)
-			code[lineno-1] = indent + prefix + ", " + expected + suffix
+			if len(args) == 1 {
+				code = createExpected(code, lineNum, actual)
+			} else {
+				code = updateExpected(code, lineNum, actual, t)
+			}
 			writeTestCode(filename, code)
 		}
 	}
@@ -189,17 +189,53 @@ func writeTestCode(filename string, code []string) {
 	}
 }
 
-func formatNewExpected(s, indent string) string {
-	return "D(`\n" + formatExpectedContent(s, indent) + indent + "`)"
+func createExpected(code []string, lineNum int, actual string) []string {
+	line := code[lineNum-1]
+	parsed := reCodeNoExp.FindAllStringSubmatch(line, -1)
+	indent := parsed[0][1]
+	prefix := parsed[0][2]
+	suffix := parsed[0][3]
+	expected := "D(`\n" +
+		formatExpectedContent(actual, indent) +
+		"\n" +
+		indent +
+		"`)"
+	code[lineNum-1] = indent + prefix + ", " + expected + suffix
+	return code
+}
+
+func updateExpected(code []string, lineNum int, actual string, t *testing.T) []string {
+	line := code[lineNum-1]
+	parsed := reCodeExpBegin.FindAllStringSubmatch(line, -1)
+	if len(parsed) != 1 {
+		t.Fatal(`\nUnable to parse expected from string` + "\n" + line)
+	}
+	indent := parsed[0][1]
+	// expected line number start/end
+	expStart := lineNum
+	expEnd := 0
+	for expEnd == 0 && lineNum < len(code) {
+		if reCodeExpEnd.Match([]byte(code[lineNum])) {
+			expEnd = lineNum
+		} else {
+			lineNum = lineNum + 1
+		}
+	}
+	expected := formatExpectedContent(actual, indent)
+	newCode := make([]string, expStart)
+	copy(newCode, code[:expStart])
+	newCode = append(newCode, expected)
+	newCode = append(newCode, code[expEnd:]...)
+	return newCode
 }
 
 func formatExpectedContent(s, indent string) string {
 	expected := heredoc.Docf(s)
 	lines := strings.Split(expected, "\n")
+	// cut empty last line
+	lines = lines[:len(lines)-1]
 	for i, line := range lines {
-		if i < len(lines)-1 {
-			lines[i] = indent + "\t" + line
-		}
+		lines[i] = indent + "\t" + line
 	}
 	return strings.Join(lines, "\n")
 }
