@@ -21,8 +21,8 @@ var (
 	isInteractive   = true
 	acceptNewValues = false
 	reCodeNoExp     = regexp.MustCompile(`^(\s*)(assertvalue\.String\(.*)(\))`)
-	reCodeExpBegin  = regexp.MustCompile("^(\\s*)(assertvalue\\.String\\(.*,\\s*D\\(`)")
-	reCodeExpEnd    = regexp.MustCompile("^\\s*`\\s*\\)\\s*\\)")
+	reCodeExpBegin  = regexp.MustCompile("^(\\s*)(assertvalue\\.String\\(.*,\\s*`)$")
+	reCodeExpEnd    = regexp.MustCompile("^\\s*`\\s*\\)")
 )
 
 func init() {
@@ -80,7 +80,7 @@ func String(t *testing.T, args ...string) {
 		expected = ""
 	} else if len(args) == 2 {
 		actual = args[0]
-		expected = args[1]
+		expected = heredoc.Doc(args[1])
 	} else {
 		t.Fatal(heredoc.Doc(`
 			Invalid function call
@@ -195,11 +195,11 @@ func createExpected(code []string, lineNum int, actual string) []string {
 	indent := parsed[0][1]
 	prefix := parsed[0][2]
 	suffix := parsed[0][3]
-	expected := "D(`\n" +
+	expected := "`\n" +
 		formatExpectedContent(actual, indent) +
 		"\n" +
 		indent +
-		"`)"
+		"`"
 	code[lineNum-1] = indent + prefix + ", " + expected + suffix
 	return code
 }
@@ -208,7 +208,7 @@ func updateExpected(code []string, lineNum int, actual string, t *testing.T) []s
 	line := code[lineNum-1]
 	parsed := reCodeExpBegin.FindAllStringSubmatch(line, -1)
 	if len(parsed) != 1 {
-		t.Fatal(`\nUnable to parse expected from string` + "\n" + line)
+		t.Fatal(`Unable to parse expected from string` + "\n" + line)
 	}
 	indent := parsed[0][1]
 	// expected line number start/end
