@@ -17,15 +17,19 @@ import (
 const maxInt = int(^uint(0) >> 1)
 
 var (
+	// See init() for comments
 	defaultAnswer   string
-	isInteractive   = true
-	acceptNewValues = false
-	reCodeNoExp     = regexp.MustCompile(`^(\s*)(assertvalue\.String\(.*)(\))`)
-	reCodeExpBegin  = regexp.MustCompile("^(\\s*)(assertvalue\\.String\\(.*,\\s*`)$")
-	reCodeExpEnd    = regexp.MustCompile("^\\s*`\\s*\\)")
+	isInteractive   bool
+	acceptNewValues bool
+	reCodeNoExp     *regexp.Regexp
+	reCodeExpBegin  *regexp.Regexp
+	reCodeExpEnd    *regexp.Regexp
+	fileChanges     map[string]map[int]int
 )
 
 func init() {
+	isInteractive = true
+	acceptNewValues = false
 	for _, arg := range os.Args {
 		switch arg {
 		case "nointeractive":
@@ -34,6 +38,19 @@ func init() {
 			acceptNewValues = true
 		}
 	}
+	// Match assertValie.String call without expected
+	reCodeNoExp = regexp.MustCompile(`^(\s*)(assertvalue\.String\(.*)(\))`)
+	// Match first line of assertValie.String call with expected following
+	reCodeExpBegin = regexp.MustCompile("^(\\s*)(assertvalue\\.String\\(.*,\\s*`)$")
+	// Match closing `) after expected value in assertvalue.String call
+	// Compliment to reCodeExpBegin
+	reCodeExpEnd = regexp.MustCompile("^\\s*`\\s*\\)")
+	// Keep tracking of changes in test code
+	// Changing expected may change the number of lines in test code
+	// and runtime.Caller returns initial file line numbers
+	// We keep line number changes here in the form of offsets
+	// fileChanges[filename][line] => offset
+	fileChanges = make(map[string]map[int]int)
 }
 
 func File(t *testing.T, actual, filename string) {
@@ -115,11 +132,17 @@ func String(t *testing.T, args ...string) {
 			t.FailNow()
 		} else {
 			_, filename, lineNum, _ := runtime.Caller(1)
+			lineNumOrig := lineNum
+			lineNum = currentLineNumber(filename, lineNum)
 			code := readTestCode(filename)
+			offset := 0
 			if len(args) == 1 {
-				code = createExpected(code, lineNum, actual)
+				code, offset = createExpected(code, lineNum, actual)
 			} else {
-				code = updateExpected(code, lineNum, actual, t)
+				code, offset = updateExpected(code, lineNum, actual, t)
+			}
+			if offset != 0 {
+				updateLineNumbers(filename, lineNumOrig, offset)
 			}
 			writeTestCode(filename, code)
 		}
@@ -189,7 +212,7 @@ func writeTestCode(filename string, code []string) {
 	}
 }
 
-func createExpected(code []string, lineNum int, actual string) []string {
+func createExpected(code []string, lineNum int, actual string) ([]string, int) {
 	line := code[lineNum-1]
 	parsed := reCodeNoExp.FindAllStringSubmatch(line, -1)
 	indent := parsed[0][1]
@@ -201,10 +224,11 @@ func createExpected(code []string, lineNum int, actual string) []string {
 		indent +
 		"`"
 	code[lineNum-1] = indent + prefix + ", " + expected + suffix
-	return code
+	offset := strings.Count(expected, "\n")
+	return code, offset
 }
 
-func updateExpected(code []string, lineNum int, actual string, t *testing.T) []string {
+func updateExpected(code []string, lineNum int, actual string, t *testing.T) ([]string, int) {
 	line := code[lineNum-1]
 	parsed := reCodeExpBegin.FindAllStringSubmatch(line, -1)
 	if len(parsed) != 1 {
@@ -226,7 +250,8 @@ func updateExpected(code []string, lineNum int, actual string, t *testing.T) []s
 	copy(newCode, code[:expStart])
 	newCode = append(newCode, expected)
 	newCode = append(newCode, code[expEnd:]...)
-	return newCode
+	offset := strings.Count(expected, "\n") - (expEnd - expStart)
+	return newCode, offset
 }
 
 func formatExpectedContent(s, indent string) string {
@@ -238,4 +263,23 @@ func formatExpectedContent(s, indent string) string {
 		lines[i] = indent + "\t" + line
 	}
 	return strings.Join(lines, "\n")
+}
+
+func updateLineNumbers(filename string, lineNum, offset int) {
+	if fileChanges[filename] == nil {
+		fileChanges[filename] = make(map[int]int)
+	}
+	fileChanges[filename][lineNum] = offset
+}
+
+func currentLineNumber(filename string, lineNum int) int {
+	cumulativeOffset := 0
+	if fileChanges[filename] != nil {
+		for num, offset := range fileChanges[filename] {
+			if lineNum > num {
+				cumulativeOffset = cumulativeOffset + offset
+			}
+		}
+	}
+	return lineNum + cumulativeOffset
 }
