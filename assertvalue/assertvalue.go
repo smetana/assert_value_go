@@ -18,7 +18,7 @@ const maxInt = int(^uint(0) >> 1)
 
 var (
 	// See init() for comments
-	defaultAnswer   string
+	recurringAnswer string
 	isInteractive   bool
 	acceptNewValues bool
 	reCodeNoExp     *regexp.Regexp
@@ -153,8 +153,8 @@ func isNewValueAccepted(diff string) bool {
 	fmt.Println(diff)
 	var answer string
 	if isInteractive {
-		if defaultAnswer != "" {
-			answer = defaultAnswer
+		if recurringAnswer != "" {
+			answer = recurringAnswer
 		} else {
 			fmt.Print("Accept new value? [y,n,Y,N] ")
 			// testing framework changes os.Stdin
@@ -167,7 +167,7 @@ func isNewValueAccepted(diff string) bool {
 			s.Scan()
 			answer = s.Text()
 			if answer == "Y" || answer == "N" {
-				defaultAnswer = answer
+				recurringAnswer = answer
 			}
 		}
 		return answer == "y" || answer == "Y"
