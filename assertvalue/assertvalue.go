@@ -25,6 +25,7 @@ var (
 	reCodeExpBegin  *regexp.Regexp
 	reCodeExpEnd    *regexp.Regexp
 	fileChanges     map[string]map[int]int
+	prompts         []string
 )
 
 func init() {
@@ -32,11 +33,17 @@ func init() {
 	acceptNewValues = false
 	for _, arg := range os.Args {
 		switch arg {
-		case "nointeractive":
+		case "-nointeractive":
 			isInteractive = false
-		case "accept":
+		case "-accept":
 			acceptNewValues = true
 		}
+	}
+	// Parse "-promts nnnyyy" or "-prompts=nnnyyy" argument
+	rePrompts := regexp.MustCompile(`-prompts(\s+|=)(.*)(\s|$)`)
+	parsed := rePrompts.FindAllStringSubmatch(strings.Join(os.Args, " "), -1)
+	if len(parsed) > 0 {
+		prompts = strings.Split(parsed[0][2], "")
 	}
 	// Match assertValie.String call without expected
 	reCodeNoExp = regexp.MustCompile(`^(\s*)(assertvalue\.String\(.*)(\))`)
@@ -157,15 +164,20 @@ func isNewValueAccepted(diff string) bool {
 			answer = recurringAnswer
 		} else {
 			fmt.Print("Accept new value? [y,n,Y,N] ")
-			// testing framework changes os.Stdin
-			// We need real interaction with user
-			tty, err := os.Open("/dev/tty")
-			if err != nil {
-				log.Fatalf("can't open /dev/tty: %s", err)
+			if len(prompts) > 0 {
+				answer, prompts = prompts[0], prompts[1:]
+				fmt.Println(answer)
+			} else {
+				// testing framework changes os.Stdin
+				// We need real interaction with user
+				tty, err := os.Open("/dev/tty")
+				if err != nil {
+					log.Fatalf("can't open /dev/tty: %s", err)
+				}
+				s := bufio.NewScanner(tty)
+				s.Scan()
+				answer = s.Text()
 			}
-			s := bufio.NewScanner(tty)
-			s.Scan()
-			answer = s.Text()
 			if answer == "Y" || answer == "N" {
 				recurringAnswer = answer
 			}
