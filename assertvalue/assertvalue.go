@@ -152,7 +152,7 @@ func String(t *testing.T, args ...string) {
 func isNewValueAccepted(diff string) bool {
 	fmt.Println(diff)
 	var answer string
-	if isInteractive {
+	if isInteractive && testing.Verbose() {
 		if recurringAnswer != "" {
 			answer = recurringAnswer
 		} else {
