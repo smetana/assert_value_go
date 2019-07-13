@@ -1,0 +1,27 @@
+=== RUN   TestCreate
+@@ -1 +1,2 @@
++Hello<NOEOL>
+ 
+
+Accept new value? [y,n,Y,N] y
+--- PASS: TestCreate (0.00s)
+=== RUN   TestUpdate
+@@ -1,2 +1,4 @@
+ foo
++bar
++baz
+ 
+
+Accept new value? [y,n,Y,N] y
+--- PASS: TestUpdate (0.00s)
+=== RUN   TestFile
+--- file: log.txt
++++ actual
+@@ -1 +1 @@
+-
++Hello World
+
+Accept new value? [y,n,Y,N] y
+--- PASS: TestFile (0.00s)
+PASS
+ok  	command-line-arguments	0.003s

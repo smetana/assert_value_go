@@ -1,0 +1,29 @@
+package assert_value_go
+
+import (
+	. "github.com/MakeNowJust/heredoc/dot"
+	"github.com/smetana/assert_value_go/assertvalue"
+	"testing"
+)
+
+func TestCreate(t *testing.T) {
+	// prompt:y
+	assertvalue.String(t, "Hello")
+}
+
+func TestUpdate(t *testing.T) {
+	var val = D(`
+		foo
+		bar
+		baz
+	`)
+	// prompt:y
+	assertvalue.String(t, val, `
+		foo
+	`)
+}
+
+func TestFile(t *testing.T) {
+	// prompt:y
+	assertvalue.File(t, "Hello World", "log.txt")
+}
