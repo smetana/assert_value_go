@@ -124,7 +124,7 @@ func String(t *testing.T, args ...string) {
 	// new line character we should add do something with values
 	// which don't end wuth new lines. For now indicate missing new line
 	// with <NOEOL>\n
-	if actual[len(actual)-1:] != "\n" {
+	if actual == "" || actual[len(actual)-1:] != "\n" {
 		actual = actual + "<NOEOL>\n"
 	}
 
@@ -262,7 +262,7 @@ func updateExpected(code []string, lineNum int, actual string, t *testing.T) ([]
 	copy(newCode, code[:expStart])
 	newCode = append(newCode, expected)
 	newCode = append(newCode, code[expEnd:]...)
-	offset := strings.Count(expected, "\n") - (expEnd - expStart)
+	offset := strings.Count(expected, "\n") - (expEnd - expStart - 1)
 	return newCode, offset
 }
 

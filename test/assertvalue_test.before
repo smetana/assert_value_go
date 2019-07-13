@@ -8,18 +8,46 @@ import (
 
 func TestCreate(t *testing.T) {
 	// prompt:y
-	assertvalue.String(t, "Hello")
+	assertvalue.String(t, "Hello World!")
+}
+
+func TestEmptyStringCreate(t *testing.T) {
+	// prompt:y
+	assertvalue.String(t, "")
 }
 
 func TestUpdate(t *testing.T) {
 	var val = D(`
 		foo
 		bar
-		baz
 	`)
 	// prompt:y
 	assertvalue.String(t, val, `
 		foo
+	`)
+}
+
+func TestShrinkTestCode(t *testing.T) {
+	var val = D(`
+		foo
+	`)
+	// prompt:y
+	assertvalue.String(t, val, `
+		foo
+		bar
+		baz
+		foo
+		bar
+		baz
+	`)
+}
+
+func TestShrinkTestCodeWithEmptyString(t *testing.T) {
+	// prompt:y
+	assertvalue.String(t, "", `
+		foo
+		bar
+		baz
 	`)
 }
 

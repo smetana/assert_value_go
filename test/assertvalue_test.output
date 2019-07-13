@@ -1,19 +1,47 @@
 === RUN   TestCreate
 @@ -1 +1,2 @@
-+Hello<NOEOL>
++Hello World!<NOEOL>
  
 
 Accept new value? [y,n,Y,N] y
 --- PASS: TestCreate (0.00s)
+=== RUN   TestEmptyStringCreate
+@@ -1 +1,2 @@
++<NOEOL>
+ 
+
+Accept new value? [y,n,Y,N] y
+--- PASS: TestEmptyStringCreate (0.00s)
 === RUN   TestUpdate
-@@ -1,2 +1,4 @@
+@@ -1,2 +1,3 @@
  foo
 +bar
-+baz
  
 
 Accept new value? [y,n,Y,N] y
 --- PASS: TestUpdate (0.00s)
+=== RUN   TestShrinkTestCode
+@@ -1,7 +1,2 @@
+ foo
+-bar
+-baz
+-foo
+-bar
+-baz
+ 
+
+Accept new value? [y,n,Y,N] y
+--- PASS: TestShrinkTestCode (0.00s)
+=== RUN   TestShrinkTestCodeWithEmptyString
+@@ -1,4 +1,2 @@
+-foo
+-bar
+-baz
++<NOEOL>
+ 
+
+Accept new value? [y,n,Y,N] y
+--- PASS: TestShrinkTestCodeWithEmptyString (0.00s)
 === RUN   TestFile
 --- file: log.txt
 +++ actual
@@ -24,4 +52,4 @@ Accept new value? [y,n,Y,N] y
 Accept new value? [y,n,Y,N] y
 --- PASS: TestFile (0.00s)
 PASS
-ok  	command-line-arguments	0.003s
+ok  	command-line-arguments	0.005s

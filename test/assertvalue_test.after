@@ -8,8 +8,15 @@ import (
 
 func TestCreate(t *testing.T) {
 	// prompt:y
-	assertvalue.String(t, "Hello", `
-		Hello<NOEOL>
+	assertvalue.String(t, "Hello World!", `
+		Hello World!<NOEOL>
+	`)
+}
+
+func TestEmptyStringCreate(t *testing.T) {
+	// prompt:y
+	assertvalue.String(t, "", `
+		<NOEOL>
 	`)
 }
 
@@ -17,13 +24,28 @@ func TestUpdate(t *testing.T) {
 	var val = D(`
 		foo
 		bar
-		baz
 	`)
 	// prompt:y
 	assertvalue.String(t, val, `
 		foo
 		bar
-		baz
+	`)
+}
+
+func TestShrinkTestCode(t *testing.T) {
+	var val = D(`
+		foo
+	`)
+	// prompt:y
+	assertvalue.String(t, val, `
+		foo
+	`)
+}
+
+func TestShrinkTestCodeWithEmptyString(t *testing.T) {
+	// prompt:y
+	assertvalue.String(t, "", `
+		<NOEOL>
 	`)
 }
 
