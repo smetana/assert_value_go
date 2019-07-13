@@ -21,7 +21,7 @@ func TestEmptyStringCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	var val = D(`
+	val := D(`
 		foo
 		bar
 	`)
@@ -33,7 +33,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestShrinkTestCode(t *testing.T) {
-	var val = D(`
+	val := D(`
 		foo
 	`)
 	// prompt:y
@@ -49,7 +49,17 @@ func TestShrinkTestCodeWithEmptyString(t *testing.T) {
 	`)
 }
 
-func TestFile(t *testing.T) {
+func TestCreateFile(t *testing.T) {
 	// prompt:y
-	assertvalue.File(t, "Hello World", "log.txt")
+	assertvalue.File(t, "Hello World!", "file_to_create.txt")
+}
+
+func TestUpdateFile(t *testing.T) {
+	// prompt:y
+	val := D(`
+		foo
+		bar
+		baz
+	`)
+	assertvalue.File(t, val, "file_to_update.txt")
 }

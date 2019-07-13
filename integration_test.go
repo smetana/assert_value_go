@@ -28,7 +28,20 @@ var (
 // ----------------- Tests -------------------
 
 func TestPass(t *testing.T) {
+	copyPath("test/file_to_update.before", "file_to_update.txt")
 	runTestFile(t, "assertvalue_test", true)
+
+	content, err := ioutil.ReadFile(tmpDir + "/" + "file_to_create.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertvalue.File(t, string(content), "test/file_to_create.after")
+
+	content, err = ioutil.ReadFile(tmpDir + "/" + "file_to_update.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertvalue.File(t, string(content), "test/file_to_update.after")
 }
 
 func TestFail(t *testing.T) {
