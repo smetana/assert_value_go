@@ -1,4 +1,6 @@
 # assertvalue
+[![Build Status](https://travis-ci.org/smetana/assert_value_go.svg?branch=master)](https://travis-ci.org/smetana/assert_value_go)
+
 
 `assert` on steroids that writes and updates tests for you.
 Golang implementation of https://github.com/assert-value
