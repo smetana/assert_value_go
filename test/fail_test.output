@@ -1,0 +1,19 @@
+=== RUN   TestPass
+@@ -1 +1,3 @@
++Hello
++World
+ 
+
+Accept new value? [y,n,Y,N] y
+--- PASS: TestPass (0000s)
+=== RUN   TestFail
+@@ -1,2 +1,3 @@
+-foo
++Hello
++World
+ 
+
+Accept new value? [y,n,Y,N] n
+--- FAIL: TestFail (0000s)
+FAIL
+FAIL	command-line-arguments	0000s

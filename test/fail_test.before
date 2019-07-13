@@ -1,0 +1,18 @@
+package assert_value_go
+
+import (
+	"github.com/smetana/assert_value_go/assertvalue"
+	"testing"
+)
+
+func TestPass(t *testing.T) {
+	// prompt:y
+	assertvalue.String(t, "Hello\nWorld\n")
+}
+
+func TestFail(t *testing.T) {
+	// prompt:n
+	assertvalue.String(t, "Hello\nWorld\n", `
+		foo
+	`)
+}

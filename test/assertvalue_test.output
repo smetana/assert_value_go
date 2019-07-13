@@ -4,14 +4,14 @@
  
 
 Accept new value? [y,n,Y,N] y
---- PASS: TestCreate (0.00s)
+--- PASS: TestCreate (0000s)
 === RUN   TestEmptyStringCreate
 @@ -1 +1,2 @@
 +<NOEOL>
  
 
 Accept new value? [y,n,Y,N] y
---- PASS: TestEmptyStringCreate (0.00s)
+--- PASS: TestEmptyStringCreate (0000s)
 === RUN   TestUpdate
 @@ -1,2 +1,3 @@
  foo
@@ -19,7 +19,7 @@ Accept new value? [y,n,Y,N] y
  
 
 Accept new value? [y,n,Y,N] y
---- PASS: TestUpdate (0.00s)
+--- PASS: TestUpdate (0000s)
 === RUN   TestShrinkTestCode
 @@ -1,7 +1,2 @@
  foo
@@ -31,7 +31,7 @@ Accept new value? [y,n,Y,N] y
  
 
 Accept new value? [y,n,Y,N] y
---- PASS: TestShrinkTestCode (0.00s)
+--- PASS: TestShrinkTestCode (0000s)
 === RUN   TestShrinkTestCodeWithEmptyString
 @@ -1,4 +1,2 @@
 -foo
@@ -41,7 +41,7 @@ Accept new value? [y,n,Y,N] y
  
 
 Accept new value? [y,n,Y,N] y
---- PASS: TestShrinkTestCodeWithEmptyString (0.00s)
+--- PASS: TestShrinkTestCodeWithEmptyString (0000s)
 === RUN   TestFile
 --- file: log.txt
 +++ actual
@@ -50,6 +50,6 @@ Accept new value? [y,n,Y,N] y
 +Hello World
 
 Accept new value? [y,n,Y,N] y
---- PASS: TestFile (0.00s)
+--- PASS: TestFile (0000s)
 PASS
-ok  	command-line-arguments	0.005s
+ok  	command-line-arguments	0000s

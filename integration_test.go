@@ -8,16 +8,39 @@
 package assert_value_go
 
 import (
+	"bytes"
 	"github.com/smetana/assert_value_go/assertvalue"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"regexp"
+	"syscall"
 	"testing"
 )
 
-var tmpDir string
+var (
+	tmpDir   string
+	canonRe1 *regexp.Regexp
+	canonRe2 *regexp.Regexp
+)
+
+// ----------------- Tests -------------------
+
+func TestPass(t *testing.T) {
+	runTestFile(t, "assertvalue_test", true)
+}
+
+func TestFail(t *testing.T) {
+	runTestFile(t, "fail_test", false)
+}
+
+// ----------------- Helpers -----------------
+
+func init() {
+	canonRe1 = regexp.MustCompile(`((ok|FAIL)\s+command-line-arguments\s*)(.*)`)
+	canonRe2 = regexp.MustCompile(`((PASS|FAIL):\s+Test.*\s+)\(.*?\)`)
+}
 
 func TestMain(m *testing.M) {
 	var err error
@@ -38,6 +61,54 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	os.RemoveAll(tmpDir)
 	os.Exit(code)
+}
+
+func runTestFile(t *testing.T, testName string, shouldPass bool) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	beforeFilename := "test/" + testName + ".before"
+	afterFilename := "test/" + testName + ".after"
+	outputFilename := "test/" + testName + ".output"
+	testFilename := testName + ".go"
+
+	copyPath(beforeFilename, testFilename)
+	prompts := getPrompts(testFilename)
+	cmd := exec.Command("go", "test", "-v", testFilename,
+		"-args", "--", "-prompts="+prompts,
+	)
+	cmd.Dir = tmpDir
+	cmd.Env = append(os.Environ(),
+		"GOFLAGS=-mod=vendor",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		if shouldPass {
+			t.Log(testFilename + " failed")
+			t.Log(stdout.String())
+			t.Log(stderr.String())
+			t.Fatal(err)
+		} else {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+					if status.ExitStatus() != 1 {
+						t.Log(testFilename + " failed")
+						t.Log(stdout.String())
+						t.Log(stderr.String())
+						t.Fatal(err)
+					}
+				}
+			}
+		}
+	}
+	testCode, err := ioutil.ReadFile(tmpDir + "/" + testFilename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := canonicalizeOutput(stdout.String())
+	assertvalue.File(t, string(testCode), afterFilename)
+	assertvalue.File(t, out, outputFilename)
 }
 
 func copyPath(in, out string) {
@@ -62,24 +133,8 @@ func getPrompts(in string) string {
 	return prompts
 }
 
-func TestSimple(t *testing.T) {
-	copyPath("test/assertvalue_test.before", "assertvalue_test.go")
-	prompts := getPrompts("assertvalue_test.go")
-	cmd := exec.Command("go", "test", "-v", "assertvalue_test.go", "-args", "--", "-prompts="+prompts)
-	cmd.Dir = tmpDir
-	cmd.Env = append(os.Environ(),
-		"GOFLAGS=-mod=vendor",
-	)
-	out, err := cmd.Output()
-	if err != nil {
-		t.Log("assertvalue_test.go failed")
-		t.Log(string(out))
-		t.Fatal(err)
-	}
-	testCode, err := ioutil.ReadFile(tmpDir + "/assertvalue_test.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertvalue.File(t, string(testCode), "test/assertvalue_test.after")
-	assertvalue.File(t, string(out), "test/assertvalue_test.output")
+func canonicalizeOutput(s string) string {
+	s = canonRe1.ReplaceAllString(s, "${1}0000s")
+	s = canonRe2.ReplaceAllString(s, "${1}(0000s)")
+	return s
 }
