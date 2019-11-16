@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/MakeNowJust/heredoc"
+	"github.com/mattn/go-tty"
 	"github.com/pmezard/go-difflib/difflib"
 	"io/ioutil"
 	"log"
@@ -170,13 +171,15 @@ func isNewValueAccepted(diff string) bool {
 			} else {
 				// testing framework changes os.Stdin
 				// We need real interaction with user
-				tty, err := os.Open("/dev/tty")
+				tty, err := tty.Open()
 				if err != nil {
-					log.Fatalf("can't open /dev/tty: %s", err)
+					log.Fatal(err)
 				}
-				s := bufio.NewScanner(tty)
-				s.Scan()
-				answer = s.Text()
+				defer tty.Close()
+				answer, err = tty.ReadString()
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 			if answer == "Y" || answer == "N" {
 				recurringAnswer = answer
